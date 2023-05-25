@@ -25,7 +25,7 @@ class World:
         for i, race in enumerate(people):
             for person in race:
                 print(person.cords)
-                self.grid[person.cords[1]][person.cords[0]] = person
+                self.grid[person.cords[0]][person.cords[1]] = person
         self.generate_havka()
     def generate_havka(self):
         for i in range(self.size):
@@ -34,7 +34,10 @@ class World:
                     self.grid[i][j] = Havka()
                     self.food_count += 1
     def run_day(self):
-        
+        for i in range(self.size):
+            for j in range(self.size):
+                if isinstance(self.grid[i][j], Tip4yk):
+                    self.grid[i][j].run(self.grid)
     def __str__(self):
         return str('\n'.join(str(line) for line in self.grid))
     
@@ -50,13 +53,49 @@ class Tip4yk:
         self.cords = cords
         self.state = start_state
         self.energy = start_energy
+    def find_nearby_food(self, grid):
+        for r in range(1,3):
+            for i in range(-r,r+1):
+                for j in range(-r,r+1):
+                    if i == 0 and j == 0:
+                        continue
+                    try:
+                        if isinstance(grid[self.cords[0]+i][self.cords[1]+j], Havka):
+                            return (self.cords[0]+i, self.cords[1]+j)
+                    except IndexError:
+                        continue
+        return None
+    def move(self, grid, new_cords):
+        try:
+            grid[self.cords[0]][self.cords[1]] = 0
+            self.cords[0] = new_cords[0]
+            self.cords[1] = new_cords[1]
+            grid[new_cords[0]][new_cords[1]] = self
+        except IndexError:
+            pass
     def decide_state(self):
         if self.state == States.hungry:
             pass
-    def decide_action(self):
-        pass
-    def run(self, nearby):
-        pass
+    def decide_action(self, grid):
+        if self.state == States.hungry:
+            nearby = self.find_nearby_food(grid)
+            if nearby:
+                diffy = nearby[0] - self.cords[0]
+                diffx = nearby[1] - self.cords[1]
+                if diffx < -1:
+                    diffx = -1
+                if diffx > 1:
+                    diffx = 1
+                if diffy < -1:
+                    diffy = -1
+                if diffy > 1:
+                    diffy = 1
+                self.move(grid,(self.cords[0] + diffy, self.cords[1] + diffx))
+            
+            self.move(grid,(self.cords[0] + random.randint(0, 2) - 1, self.cords[1] + random.randint(0, 2) - 1))
+
+    def run(self, grid):
+        self.decide_action(grid)
 
 def main(size):
     WINDOW_SIZE = (700, 700)
@@ -65,19 +104,18 @@ def main(size):
     pygame.init()
     window = pygame.display.set_mode(WINDOW_SIZE)
     pygame.display.set_caption("Cell Life Simulator")   
-    world = World(size, [[Tip4yk([], Races.BLACK,(0+i, 0+i),100) for i in range(4)],
-                        [Tip4yk([], Races.WHITE,(size - 1 - i, size - 1 - i),100) for i in range(4)],
-                              [Tip4yk([], Races.YELLOW,(size - 1 - i, 0 + i),100) for i in range(4)],
-                                  [Tip4yk([], Races.ORANGE,(0 + i, size - 1 - i),100) for i in range(4)]])
+    world = World(size, [[Tip4yk([], Races.BLACK,[0+i, 0+i],100) for i in range(8)],
+                        [Tip4yk([], Races.WHITE,[size - 1 - i, size - 1 - i],100) for i in range(8)],
+                              [Tip4yk([], Races.YELLOW,[0 + i,size - 1 - i],100) for i in range(8)],
+                                  [Tip4yk([], Races.ORANGE,[size - 1 - i, 0 + i],100) for i in range(8)]])
     running = True
     while running:
-        # Check for events
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
 
-        # Visualize the world
         visualize(world, CELL_SIZE, GAP_SIZE, WINDOW_SIZE, window)
+        world.run_day()
     pygame.quit()
 
 
