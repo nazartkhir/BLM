@@ -1,7 +1,7 @@
 import numpy as np
 import random
 import pygame
-
+import time
 
 
 class States:
@@ -66,13 +66,10 @@ class Tip4yk:
                         continue
         return None
     def move(self, grid, new_cords):
-        try:
-            grid[self.cords[0]][self.cords[1]] = 0
-            self.cords[0] = new_cords[0]
-            self.cords[1] = new_cords[1]
-            grid[new_cords[0]][new_cords[1]] = self
-        except IndexError:
-            pass
+        grid[self.cords[0]][self.cords[1]] = 0
+        self.cords[0] = new_cords[0]
+        self.cords[1] = new_cords[1]
+        grid[new_cords[0]][new_cords[1]] = self
     def decide_state(self):
         if self.state == States.hungry:
             pass
@@ -91,8 +88,13 @@ class Tip4yk:
                 if diffy > 1:
                     diffy = 1
                 self.move(grid,(self.cords[0] + diffy, self.cords[1] + diffx))
-            
-            self.move(grid,(self.cords[0] + random.randint(0, 2) - 1, self.cords[1] + random.randint(0, 2) - 1))
+            while True:
+                new_y = self.cords[0] + random.randint(0, 2) - 1 
+                new_x = self.cords[1] + random.randint(0, 2) - 1
+                if 0<= new_y<=len(grid) - 1 and 0<= new_x<=len(grid) - 1:
+                    if (new_y,new_x) != self.cords and not isinstance(grid[new_y][new_x], Tip4yk):
+                        self.move(grid,(new_y, new_x))
+                        break
 
     def run(self, grid):
         self.decide_action(grid)
