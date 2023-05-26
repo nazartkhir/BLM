@@ -20,24 +20,41 @@ class Races:
 class World:
     def __init__(self, size, people) -> None:
         self.food_count = 0
+        self.max_food_count = 0
         self.grid = [[0 for _ in range(size)] for _ in range(size)]
         self.size = size
         for i, race in enumerate(people):
             for person in race:
-                print(person.cords)
                 self.grid[person.cords[0]][person.cords[1]] = person
         self.generate_havka()
+
     def generate_havka(self):
-        for i in range(self.size):
-            for j in range(self.size):
-                if self.grid[i][j] == 0 and random.random()>0.95 and self.food_count < self.size*(self.size/4):
-                    self.grid[i][j] = Havka()
-                    self.food_count += 1
+        def _create_cluster_spawn(grid, center_coords, radius):
+            '''
+            Takes the center of cluster and radius.
+            Further from center means less probability of spawning food.
+            '''
+            for loc_rad in range(1,radius):
+                for i in range(center_coords[1]-loc_rad,center_coords[1]+loc_rad):
+                    for j in range(center_coords[0]-loc_rad,center_coords[0]+loc_rad):
+                        if  random.random() < 1/loc_rad-0.05 and grid[i][j] == 0:
+                            grid[i][j] = Havka()
+                            self.food_count += 1
+                            if self.food_count == self.max_food_count:
+                                break
+        for tup in [(self.size//4, self.size//4),
+                    (self.size-(self.size//4), self.size//4),
+                    (self.size//4, self.size-self.size//4),
+                    (self.size - self.size//4, self.size-self.size//4),
+                    (self.size//2, self.size//2)]:
+            _create_cluster_spawn(self.grid, tup, 20)
+
     def run_day(self):
         for i in range(self.size):
             for j in range(self.size):
                 if isinstance(self.grid[i][j], Tip4yk):
                     self.grid[i][j].run(self.grid)
+
     def __str__(self):
         return str('\n'.join(str(line) for line in self.grid))
     
@@ -163,4 +180,4 @@ def visualize(world, CELL_SIZE, GAP_SIZE, WINDOW_SIZE, window):
     window.blit(scaled_surface, (0, 0))
     pygame.display.flip()
 
-main(50)
+main(100)
